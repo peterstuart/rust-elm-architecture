@@ -3,25 +3,11 @@ mod utils;
 mod virtual_dom;
 
 use app::App;
+use utils::set_panic_hook;
 use virtual_dom::{Attribute, Html};
 use wasm_bindgen::prelude::*;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
-#[cfg(feature = "wee_alloc")]
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
-#[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, rust-elm-architecture!");
-}
-
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct Model {
     counter: i32,
 }
@@ -46,7 +32,7 @@ impl Default for Model {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 enum Message {
     Increment,
     Decrement,
@@ -71,7 +57,10 @@ fn view(model: &Model) -> Html<Message> {
                 &[Attribute::on_click(&Message::Decrement)],
                 &[Html::text("-")],
             ),
-            Html::text(&model.counter.to_string()),
+            Html::span(
+                &[Attribute::class("counter")],
+                &[Html::text(&model.counter.to_string())],
+            ),
             Html::button(
                 &[Attribute::on_click(&Message::Increment)],
                 &[Html::text("+")],
@@ -82,6 +71,8 @@ fn view(model: &Model) -> Html<Message> {
 
 #[wasm_bindgen]
 pub fn run_app() {
-    let app = App { init, update, view };
-    app.run()
+    set_panic_hook();
+
+    let app = App::new(init, update, view, "root");
+    app.start();
 }
