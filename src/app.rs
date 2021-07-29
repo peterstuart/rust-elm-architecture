@@ -75,7 +75,7 @@ where
     pub fn handle_message(&self, message: &Message) {
         let state = self.state();
 
-        let new_model = (self.update)(&message, &state.model);
+        let new_model = (self.update)(message, &state.model);
 
         if new_model == state.model {
             return;
