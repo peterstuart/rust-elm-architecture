@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::virtual_dom::{self, Attribute, Html, Node};
+use crate::virtual_dom::{self, Attribute, Event, Html, Node};
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use web_sys::{Document, Element};
 
@@ -137,17 +137,22 @@ where
 
         for attribute in &element.attributes {
             match attribute {
-                Attribute::OnClick(message) => {
+                Attribute::On(event, message) => {
                     let app = self.clone();
                     let message = message.clone();
 
-                    let callback = Closure::wrap(Box::new(move || {
-                        app.handle_message(&message);
-                    }) as Box<dyn FnMut()>);
+                    match event {
+                        Event::Click => {
+                            let callback = Closure::wrap(Box::new(move || {
+                                app.handle_message(&message);
+                            })
+                                as Box<dyn FnMut()>);
 
-                    dom_element.set_onclick(Some(callback.as_ref().unchecked_ref()));
+                            dom_element.set_onclick(Some(callback.as_ref().unchecked_ref()));
 
-                    callback.forget();
+                            callback.forget();
+                        }
+                    }
                 }
                 Attribute::Other(name, value) => dom_element.set_attribute(name, value)?,
             }

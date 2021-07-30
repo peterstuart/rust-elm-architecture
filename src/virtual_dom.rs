@@ -1,12 +1,17 @@
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Event {
+    Click,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Attribute<Message> {
-    OnClick(Message),
+    On(Event, Message),
     Other(String, String),
 }
 
 impl<Message: Clone> Attribute<Message> {
     pub fn on_click(message: &Message) -> Self {
-        Self::OnClick(message.clone())
+        Self::On(Event::Click, message.clone())
     }
 
     pub fn class(name: &str) -> Self {
