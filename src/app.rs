@@ -1,23 +1,23 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::virtual_dom::{self, Attribute, Event, Html, Node};
+use std::cell::Ref;
+use std::fmt;
+use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-use web_sys::{Document, Element};
+use web_sys::console;
+use web_sys::{Document, Element, InputEvent};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
 struct State<Model, Message>
 where
-    Model: Clone + Eq,
-    Message: Clone + Eq,
+    Model: Clone,
 {
     model: Model,
+    #[allow(dead_code)] // TODO: use for diff
     html: Option<Html<Message>>,
 }
 
 impl<Model, Message> State<Model, Message>
 where
-    Model: Clone + Eq,
-    Message: Clone + Eq,
+    Model: Clone,
 {
     fn new(model: Model, html: Html<Message>) -> Self {
         Self {
@@ -33,8 +33,8 @@ where
 
 pub struct App<Model, Message, Init, Update, View>
 where
-    Model: 'static + Clone + Eq,
-    Message: Clone + Eq,
+    Model: 'static + Clone + fmt::Debug + Eq,
+    Message: Clone + fmt::Debug,
     Init: 'static + Fn() -> Model,
     Update: 'static + Fn(&Message, &Model) -> Model,
     View: 'static + Fn(&Model) -> Html<Message>,
@@ -48,8 +48,8 @@ where
 
 impl<Model, Message, Init, Update, View> App<Model, Message, Init, Update, View>
 where
-    Model: Clone + Eq,
-    Message: 'static + Clone + Eq,
+    Model: Clone + fmt::Debug + Eq,
+    Message: 'static + Clone + fmt::Debug,
     Init: Fn() -> Model,
     Update: Fn(&Message, &Model) -> Model,
     View: Fn(&Model) -> Html<Message>,
@@ -73,6 +73,8 @@ where
     }
 
     pub fn handle_message(&self, message: &Message) {
+        console::log_1(&format!("handle_message: {:?}", message).into());
+
         let state = self.state();
 
         let new_model = (self.update)(message, &state.model);
@@ -84,11 +86,14 @@ where
         let new_html = (self.view)(&new_model);
 
         self.render_app(&new_html).unwrap();
+
+        drop(state);
+
         self.set_state(State::new(new_model, new_html));
     }
 
-    fn state(&self) -> State<Model, Message> {
-        self.state.borrow().clone()
+    fn state(&self) -> Ref<State<Model, Message>> {
+        (*self.state).borrow()
     }
 
     fn set_state(&self, state: State<Model, Message>) {
@@ -137,12 +142,13 @@ where
 
         for attribute in &element.attributes {
             match attribute {
-                Attribute::On(event, message) => {
+                Attribute::On(event) => {
                     let app = self.clone();
-                    let message = message.clone();
 
                     match event {
-                        Event::Click => {
+                        Event::Click(message) => {
+                            let message = message.clone();
+
                             let callback = Closure::wrap(Box::new(move || {
                                 app.handle_message(&message);
                             })
@@ -150,6 +156,27 @@ where
 
                             dom_element.set_onclick(Some(callback.as_ref().unchecked_ref()));
 
+                            // TODO: this is leaking memory
+                            callback.forget();
+                        }
+                        Event::Input(handler) => {
+                            let handler = handler.clone();
+
+                            let callback = Closure::wrap(Box::new(move |event: InputEvent| {
+                                let value = event
+                                    .target()
+                                    .unwrap()
+                                    .dyn_into::<web_sys::HtmlInputElement>()
+                                    .unwrap()
+                                    .value();
+                                let message = handler(&value);
+                                app.handle_message(&message);
+                            })
+                                as Box<dyn Fn(_)>);
+
+                            dom_element.set_oninput(Some(callback.as_ref().unchecked_ref()));
+
+                            // TODO: this is leaking memory
                             callback.forget();
                         }
                     }
@@ -177,8 +204,8 @@ where
 
 impl<Model, Message, Init, Update, View> Clone for App<Model, Message, Init, Update, View>
 where
-    Model: Clone + Eq,
-    Message: 'static + Clone + Eq,
+    Model: Clone + fmt::Debug + Eq,
+    Message: 'static + Clone + fmt::Debug,
     Init: Fn() -> Model,
     Update: Fn(&Message, &Model) -> Model,
     View: Fn(&Model) -> Html<Message>,
