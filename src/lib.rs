@@ -8,25 +8,38 @@ use wasm_bindgen::prelude::*;
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Model {
     counter: i32,
+    text: String,
 }
 
 impl Model {
     fn increment(&self) -> Self {
         Self {
             counter: self.counter + 1,
+            text: self.text.clone(),
         }
     }
 
     fn decrement(&self) -> Self {
         Self {
             counter: self.counter - 1,
+            text: self.text.clone(),
+        }
+    }
+
+    fn change_text(&self, text: &str) -> Self {
+        Self {
+            counter: self.counter,
+            text: text.into(),
         }
     }
 }
 
 impl Default for Model {
     fn default() -> Self {
-        Self { counter: 0 }
+        Self {
+            counter: 0,
+            text: "".into(),
+        }
     }
 }
 
@@ -34,6 +47,7 @@ impl Default for Model {
 enum Message {
     Increment,
     Decrement,
+    ChangeText(String),
 }
 
 fn init() -> Model {
@@ -44,25 +58,40 @@ fn update(message: &Message, model: &Model) -> Model {
     match message {
         Message::Increment => model.increment(),
         Message::Decrement => model.decrement(),
+        Message::ChangeText(text) => model.change_text(text),
     }
 }
 
 fn view(model: &Model) -> Html<Message> {
     Html::div(
-        &[],
-        &[
-            Html::button(
-                &[Attribute::on_click(&Message::Decrement)],
-                &[Html::text("-")],
+        vec![],
+        vec![
+            Html::div(
+                vec![],
+                vec![
+                    Html::button(
+                        vec![Attribute::on_click(Message::Decrement)],
+                        vec![Html::text("-")],
+                    ),
+                    Html::span(
+                        vec![Attribute::class("counter")],
+                        vec![Html::text(&model.counter.to_string())],
+                    ),
+                    Html::button(
+                        vec![Attribute::on_click(Message::Increment)],
+                        vec![Html::text("+")],
+                    ),
+                ],
             ),
-            Html::span(
-                &[Attribute::class("counter")],
-                &[Html::text(&model.counter.to_string())],
+            Html::input(
+                vec![
+                    Attribute::type_("text"),
+                    Attribute::value(&model.text),
+                    Attribute::on_input(|text| Message::ChangeText(text.into())),
+                ],
+                vec![],
             ),
-            Html::button(
-                &[Attribute::on_click(&Message::Increment)],
-                &[Html::text("+")],
-            ),
+            Html::text(&model.text),
         ],
     )
 }
