@@ -1,10 +1,10 @@
 use crate::{
     app::App,
-    virtual_dom::{self, Attribute, Event, Html, Node},
+    virtual_dom::{self, Html},
 };
 use std::fmt;
-use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-use web_sys::{Document, Element, HtmlElement, InputEvent, Text};
+use wasm_bindgen::{prelude::*, JsCast, JsValue};
+use web_sys::{Document, Element, HtmlElement, InputEvent, Node, Text};
 
 pub struct Renderer<Model, Message, Init, Update, View> {
     app: App<Model, Message, Init, Update, View>,
@@ -58,14 +58,19 @@ where
             // insert new element
             (None, Some(new)) => Self::append_child(parent, &self.create_node(new)?)?,
             // leave text unchanged
-            (Some(Node::Text(old_text)), Some(Node::Text(new_text))) if old_text == new_text => {}
+            (Some(virtual_dom::Node::Text(old_text)), Some(virtual_dom::Node::Text(new_text)))
+                if old_text == new_text => {}
             // update text
-            (Some(Node::Text(_)), Some(Node::Text(new_text))) => Self::update_text(
-                &Self::get_child(parent, index)?.dyn_into::<Text>()?,
-                new_text,
-            ),
+            (Some(virtual_dom::Node::Text(_)), Some(virtual_dom::Node::Text(new_text))) => {
+                Self::update_text(
+                    &Self::get_child(parent, index)?.dyn_into::<Text>()?,
+                    new_text,
+                )
+            }
             // update element
-            (Some(Node::Element(old)), Some(Node::Element(new))) if old.name == new.name => {
+            (Some(virtual_dom::Node::Element(old)), Some(virtual_dom::Node::Element(new)))
+                if old.name == new.name =>
+            {
                 self.update_element(old, new, &Self::get_child(parent, index)?.dyn_into()?)?;
             }
             // replace node
@@ -75,9 +80,9 @@ where
         Ok(())
     }
 
-    fn get_child(element: &Element, index: u32) -> Result<web_sys::Node, JsValue> {
+    fn get_child(element: &Element, index: u32) -> Result<Node, JsValue> {
         element
-            .dyn_ref::<web_sys::Node>()
+            .dyn_ref::<Node>()
             .unwrap()
             .child_nodes()
             .item(index)
@@ -91,23 +96,23 @@ where
         Ok(())
     }
 
-    fn replace_child(element: &Element, index: u32, new: &web_sys::Node) -> Result<(), JsValue> {
+    fn replace_child(element: &Element, index: u32, new: &Node) -> Result<(), JsValue> {
         let old = Self::get_child(element, index)?;
         element.replace_child(&old, new)?;
 
         Ok(())
     }
 
-    fn append_child(element: &Element, child: &web_sys::Node) -> Result<(), JsValue> {
+    fn append_child(element: &Element, child: &Node) -> Result<(), JsValue> {
         element.append_child(child)?;
 
         Ok(())
     }
 
-    fn create_node(&self, node: &Html<Message>) -> Result<web_sys::Node, JsValue> {
+    fn create_node(&self, node: &Html<Message>) -> Result<Node, JsValue> {
         Ok(match node {
-            Node::Element(element) => self.create_element(element)?.dyn_into()?,
-            Node::Text(text) => self.create_text(text).dyn_into()?,
+            virtual_dom::Node::Element(element) => self.create_element(element)?.dyn_into()?,
+            virtual_dom::Node::Text(text) => self.create_text(text).dyn_into()?,
         })
     }
 
@@ -158,11 +163,11 @@ where
     ) -> Result<(), JsValue> {
         for attribute in &element.attributes {
             match attribute {
-                Attribute::On(event) => match event {
-                    Event::Click(_) => dom_element.set_onclick(None),
-                    Event::Input(_) => dom_element.set_oninput(None),
+                virtual_dom::Attribute::On(event) => match event {
+                    virtual_dom::Event::Click(_) => dom_element.set_onclick(None),
+                    virtual_dom::Event::Input(_) => dom_element.set_oninput(None),
                 },
-                Attribute::Other(name, _) => dom_element.set_attribute(name, "")?,
+                virtual_dom::Attribute::Other(name, _) => dom_element.set_attribute(name, "")?,
             }
         }
 
@@ -176,11 +181,11 @@ where
     ) -> Result<(), JsValue> {
         for attribute in &element.attributes {
             match attribute {
-                Attribute::On(event) => {
+                virtual_dom::Attribute::On(event) => {
                     let app = self.app.clone();
 
                     match event {
-                        Event::Click(message) => {
+                        virtual_dom::Event::Click(message) => {
                             let message = message.clone();
 
                             let callback = Closure::wrap(Box::new(move || {
@@ -193,7 +198,7 @@ where
                             // TODO: this is leaking memory
                             callback.forget();
                         }
-                        Event::Input(handler) => {
+                        virtual_dom::Event::Input(handler) => {
                             let handler = handler.clone();
 
                             let callback = Closure::wrap(Box::new(move |event: InputEvent| {
@@ -215,7 +220,9 @@ where
                         }
                     }
                 }
-                Attribute::Other(name, value) => dom_element.set_attribute(name, value)?,
+                virtual_dom::Attribute::Other(name, value) => {
+                    dom_element.set_attribute(name, value)?
+                }
             }
         }
 
