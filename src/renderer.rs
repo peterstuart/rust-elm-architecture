@@ -1,0 +1,232 @@
+use crate::{
+    app::App,
+    virtual_dom::{self, Attribute, Event, Html, Node},
+};
+use std::fmt;
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+use web_sys::{Document, Element, HtmlElement, InputEvent, Text};
+
+pub struct Renderer<Model, Message, Init, Update, View> {
+    app: App<Model, Message, Init, Update, View>,
+    document: Document,
+}
+
+impl<Model, Message, Init, Update, View> Renderer<Model, Message, Init, Update, View>
+where
+    Model: 'static + Clone + fmt::Debug + Eq,
+    Message: 'static + Clone + fmt::Debug,
+    Init: 'static + Fn() -> Model,
+    Update: 'static + Fn(&Message, &Model) -> Model,
+    View: 'static + Fn(&Model) -> Html<Message>,
+{
+    pub fn new(app: &App<Model, Message, Init, Update, View>) -> Self {
+        Self {
+            app: app.clone(),
+            document: web_sys::window().unwrap().document().unwrap(),
+        }
+    }
+
+    pub fn render(
+        &self,
+        old: &Option<Html<Message>>,
+        new: &Html<Message>,
+        root_id: &str,
+    ) -> Result<(), JsValue>
+    where
+        Message: 'static + Clone + fmt::Debug,
+    {
+        let root = self.document.get_element_by_id(root_id).unwrap();
+        self.render_node(&old.as_ref(), &Some(new), &root, 0)?;
+
+        Ok(())
+    }
+
+    fn render_node(
+        &self,
+        old: &Option<&Html<Message>>,
+        new: &Option<&Html<Message>>,
+        parent: &Element,
+        index: u32,
+    ) -> Result<(), JsValue>
+    where
+        Message: 'static + Clone + fmt::Debug,
+    {
+        match (old, new) {
+            (None, None) => panic!("don't call render_element with no old or new html"),
+            // remove old element
+            (Some(_), None) => Self::remove_child(parent, index)?,
+            // insert new element
+            (None, Some(new)) => Self::append_child(parent, &self.create_node(new)?)?,
+            // leave text unchanged
+            (Some(Node::Text(old_text)), Some(Node::Text(new_text))) if old_text == new_text => {}
+            // update text
+            (Some(Node::Text(_)), Some(Node::Text(new_text))) => Self::update_text(
+                &Self::get_child(parent, index)?.dyn_into::<Text>()?,
+                new_text,
+            ),
+            // update element
+            (Some(Node::Element(old)), Some(Node::Element(new))) if old.name == new.name => {
+                self.update_element(old, new, &Self::get_child(parent, index)?.dyn_into()?)?;
+            }
+            // replace node
+            (Some(_), Some(node)) => Self::replace_child(parent, index, &self.create_node(node)?)?,
+        }
+
+        Ok(())
+    }
+
+    fn get_child(element: &Element, index: u32) -> Result<web_sys::Node, JsValue> {
+        element
+            .dyn_ref::<web_sys::Node>()
+            .unwrap()
+            .child_nodes()
+            .item(index)
+            .ok_or_else(|| format!("no child at index {}", index).into())
+    }
+
+    fn remove_child(element: &Element, index: u32) -> Result<(), JsValue> {
+        let child = Self::get_child(element, index)?;
+        element.remove_child(&child)?;
+
+        Ok(())
+    }
+
+    fn replace_child(element: &Element, index: u32, new: &web_sys::Node) -> Result<(), JsValue> {
+        let old = Self::get_child(element, index)?;
+        element.replace_child(&old, new)?;
+
+        Ok(())
+    }
+
+    fn append_child(element: &Element, child: &web_sys::Node) -> Result<(), JsValue> {
+        element.append_child(child)?;
+
+        Ok(())
+    }
+
+    fn create_node(&self, node: &Html<Message>) -> Result<web_sys::Node, JsValue> {
+        Ok(match node {
+            Node::Element(element) => self.create_element(element)?.dyn_into()?,
+            Node::Text(text) => self.create_text(text).dyn_into()?,
+        })
+    }
+
+    fn create_element(
+        &self,
+        element: &virtual_dom::Element<Message>,
+    ) -> Result<HtmlElement, JsValue> {
+        let dom_element = self
+            .document
+            .create_element(&element.name)?
+            .dyn_into::<HtmlElement>()?;
+
+        self.set_attributes(element, &dom_element)?;
+
+        for child in &element.children {
+            let dom_child = self.create_node(child)?;
+            dom_element.append_child(&dom_child)?;
+        }
+
+        Ok(dom_element)
+    }
+
+    fn update_element(
+        &self,
+        old: &virtual_dom::Element<Message>,
+        new: &virtual_dom::Element<Message>,
+        dom_element: &HtmlElement,
+    ) -> Result<(), JsValue> {
+        self.clear_attributes(old, dom_element)?;
+        self.set_attributes(new, dom_element)?;
+
+        let max_children = old.children.len().max(new.children.len());
+
+        for index in 0..max_children {
+            let old_child = old.children.get(index);
+            let new_child = new.children.get(index);
+
+            self.render_node(&old_child, &new_child, dom_element, index as u32)?;
+        }
+
+        Ok(())
+    }
+
+    fn clear_attributes(
+        &self,
+        element: &virtual_dom::Element<Message>,
+        dom_element: &HtmlElement,
+    ) -> Result<(), JsValue> {
+        for attribute in &element.attributes {
+            match attribute {
+                Attribute::On(event) => match event {
+                    Event::Click(_) => dom_element.set_onclick(None),
+                    Event::Input(_) => dom_element.set_oninput(None),
+                },
+                Attribute::Other(name, _) => dom_element.set_attribute(name, "")?,
+            }
+        }
+
+        Ok(())
+    }
+
+    fn set_attributes(
+        &self,
+        element: &virtual_dom::Element<Message>,
+        dom_element: &HtmlElement,
+    ) -> Result<(), JsValue> {
+        for attribute in &element.attributes {
+            match attribute {
+                Attribute::On(event) => {
+                    let app = self.app.clone();
+
+                    match event {
+                        Event::Click(message) => {
+                            let message = message.clone();
+
+                            let callback = Closure::wrap(Box::new(move || {
+                                app.handle_message(&message);
+                            })
+                                as Box<dyn FnMut()>);
+
+                            dom_element.set_onclick(Some(callback.as_ref().unchecked_ref()));
+
+                            // TODO: this is leaking memory
+                            callback.forget();
+                        }
+                        Event::Input(handler) => {
+                            let handler = handler.clone();
+
+                            let callback = Closure::wrap(Box::new(move |event: InputEvent| {
+                                let value = event
+                                    .target()
+                                    .unwrap()
+                                    .dyn_into::<web_sys::HtmlInputElement>()
+                                    .unwrap()
+                                    .value();
+                                let message = handler(&value);
+                                app.handle_message(&message);
+                            })
+                                as Box<dyn Fn(_)>);
+
+                            dom_element.set_oninput(Some(callback.as_ref().unchecked_ref()));
+
+                            // TODO: this is leaking memory
+                            callback.forget();
+                        }
+                    }
+                }
+                Attribute::Other(name, value) => dom_element.set_attribute(name, value)?,
+            }
+        }
+
+        Ok(())
+    }
+
+    fn create_text(&self, text: &str) -> Text {
+        self.document.create_text_node(text)
+    }
+
+    fn update_text(text_node: &Text, text: &str) {
+        text_node.set_text_content(Some(text));
+    }
+}
