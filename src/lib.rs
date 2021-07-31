@@ -1,4 +1,5 @@
 mod app;
+mod renderer;
 mod virtual_dom;
 
 use app::App;
