@@ -3,6 +3,7 @@ use crate::{
     command::Commands,
     virtual_dom::{self, Html},
 };
+use log::trace;
 use std::fmt;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use web_sys::{Document, Element, HtmlElement, InputEvent, Node, Text};
@@ -55,14 +56,24 @@ where
         match (old, new) {
             (None, None) => panic!("don't call render_element with no old or new html"),
             // remove old element
-            (Some(_), None) => Self::remove_child(parent, index)?,
+            (Some(old), None) => {
+                trace!("remove old element: {:?} {}", old, index);
+                Self::remove_child(parent, index)?
+            }
             // insert new element
-            (None, Some(new)) => Self::append_child(parent, &self.create_node(new)?)?,
+            (None, Some(new)) => {
+                trace!("insert new element: {:?}", new);
+                Self::append_child(parent, &self.create_node(new)?)?
+            }
             // leave text unchanged
             (Some(virtual_dom::Node::Text(old_text)), Some(virtual_dom::Node::Text(new_text)))
-                if old_text == new_text => {}
+                if old_text == new_text =>
+            {
+                trace!("leave text unchanged: {:?}", new_text);
+            }
             // update text
-            (Some(virtual_dom::Node::Text(_)), Some(virtual_dom::Node::Text(new_text))) => {
+            (Some(virtual_dom::Node::Text(old_text)), Some(virtual_dom::Node::Text(new_text))) => {
+                trace!("update text: {:?} -> {:?}", old_text, new_text);
                 Self::update_text(
                     &Self::get_child(parent, index)?.dyn_into::<Text>()?,
                     new_text,
@@ -72,22 +83,26 @@ where
             (Some(virtual_dom::Node::Element(old)), Some(virtual_dom::Node::Element(new)))
                 if old.name == new.name =>
             {
+                trace!("update element: {:?}", new.name);
                 self.update_element(old, new, &Self::get_child(parent, index)?.dyn_into()?)?;
             }
             // replace node
-            (Some(_), Some(node)) => Self::replace_child(parent, index, &self.create_node(node)?)?,
+            (Some(old), Some(new)) => {
+                trace!("replace node: {:?} -> {:?} {}", old, new, index);
+                Self::replace_child(parent, index, &self.create_node(new)?)?
+            }
         }
 
         Ok(())
     }
 
     fn get_child(element: &Element, index: u32) -> Result<Node, JsValue> {
-        element
+        Ok(element
             .dyn_ref::<Node>()
             .unwrap()
             .child_nodes()
             .item(index)
-            .ok_or_else(|| format!("no child at index {}", index).into())
+            .unwrap())
     }
 
     fn remove_child(element: &Element, index: u32) -> Result<(), JsValue> {
@@ -147,7 +162,7 @@ where
 
         let max_children = old.children.len().max(new.children.len());
 
-        for index in 0..max_children {
+        for index in (0..max_children).rev() {
             let old_child = old.children.get(index);
             let new_child = new.children.get(index);
 

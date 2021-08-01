@@ -21,7 +21,7 @@ enum DataLoading<Data> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Model {
     counter: i32,
-    text: String,
+    repo: String,
     pull_requests: DataLoading<Vec<PullRequest>>,
 }
 
@@ -29,7 +29,7 @@ impl Model {
     fn increment(&self) -> Self {
         Self {
             counter: self.counter + 1,
-            text: self.text.clone(),
+            repo: self.repo.clone(),
             pull_requests: self.pull_requests.clone(),
         }
     }
@@ -37,7 +37,7 @@ impl Model {
     fn decrement(&self) -> Self {
         Self {
             counter: self.counter - 1,
-            text: self.text.clone(),
+            repo: self.repo.clone(),
             pull_requests: self.pull_requests.clone(),
         }
     }
@@ -45,7 +45,7 @@ impl Model {
     fn change_text(&self, text: &str) -> Self {
         Self {
             counter: self.counter,
-            text: text.into(),
+            repo: text.into(),
             pull_requests: self.pull_requests.clone(),
         }
     }
@@ -56,7 +56,7 @@ impl Model {
     ) -> Self {
         Self {
             counter: self.counter,
-            text: self.text.clone(),
+            repo: self.repo.clone(),
             pull_requests: data_loading,
         }
     }
@@ -66,7 +66,7 @@ impl Default for Model {
     fn default() -> Self {
         Self {
             counter: 0,
-            text: "".into(),
+            repo: "peterstuart/rust-elm-architecture".into(),
             pull_requests: DataLoading::Loading,
         }
     }
@@ -76,21 +76,22 @@ impl Default for Model {
 enum Message {
     Increment,
     Decrement,
-    ChangeText(String),
+    ChangeRepo(String),
+    FetchPullRequests,
     ChangePullRequestsDataLoading(DataLoading<Vec<PullRequest>>),
 }
 
 fn init() -> (Model, Commands<Message>) {
+    let model = Model::default();
+    let repo = model.repo.clone();
+
     (
-        Model::default(),
-        vec![github::get_pull_requests(
-            "peterstuart/rust-elm-architecture",
-            |result| {
-                Message::ChangePullRequestsDataLoading(
-                    result.map_or_else(|_| DataLoading::Error, DataLoading::Loaded),
-                )
-            },
-        )],
+        model,
+        vec![github::get_pull_requests(&repo, |result| {
+            Message::ChangePullRequestsDataLoading(
+                result.map_or_else(|_| DataLoading::Error, DataLoading::Loaded),
+            )
+        })],
     )
 }
 
@@ -98,13 +99,23 @@ fn update(message: &Message, model: &Model) -> (Model, Commands<Message>) {
     let model = match message {
         Message::Increment => model.increment(),
         Message::Decrement => model.decrement(),
-        Message::ChangeText(text) => model.change_text(text),
+        Message::ChangeRepo(text) => model.change_text(text),
+        Message::FetchPullRequests => model.change_pull_requests_data_loading(DataLoading::Loading),
         Message::ChangePullRequestsDataLoading(data_loading) => {
             model.change_pull_requests_data_loading(data_loading.clone())
         }
     };
 
-    (model, vec![])
+    let commands = match message {
+        Message::FetchPullRequests => vec![github::get_pull_requests(&model.repo, |result| {
+            Message::ChangePullRequestsDataLoading(
+                result.map_or_else(|_| DataLoading::Error, DataLoading::Loaded),
+            )
+        })],
+        _ => vec![],
+    };
+
+    (model, commands)
 }
 
 fn view(model: &Model) -> Html<Message> {
@@ -131,12 +142,15 @@ fn view(model: &Model) -> Html<Message> {
             Html::input(
                 vec![
                     Attribute::type_("text"),
-                    Attribute::value(&model.text),
-                    Attribute::on_input(|text| Message::ChangeText(text.into())),
+                    Attribute::value(&model.repo),
+                    Attribute::on_input(|text| Message::ChangeRepo(text.into())),
                 ],
                 vec![],
             ),
-            Html::text(&model.text),
+            Html::button(
+                vec![Attribute::on_click(Message::FetchPullRequests)],
+                vec![Html::text("Fetch PRs")],
+            ),
             pull_requests_view(&model.pull_requests),
         ],
     )
