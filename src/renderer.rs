@@ -97,12 +97,12 @@ where
     }
 
     fn get_child(element: &Element, index: u32) -> Result<Node, JsValue> {
-        Ok(element
+        element
             .dyn_ref::<Node>()
             .unwrap()
             .child_nodes()
             .item(index)
-            .unwrap())
+            .ok_or_else(|| format!("no child at index {}", index).into())
     }
 
     fn remove_child(element: &Element, index: u32) -> Result<(), JsValue> {
