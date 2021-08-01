@@ -1,5 +1,6 @@
 use crate::{
     app::App,
+    command::Commands,
     virtual_dom::{self, Html},
 };
 use std::fmt;
@@ -15,8 +16,8 @@ impl<Model, Message, Init, Update, View> Renderer<Model, Message, Init, Update, 
 where
     Model: 'static + Clone + fmt::Debug + Eq,
     Message: 'static + Clone + fmt::Debug,
-    Init: 'static + Fn() -> Model,
-    Update: 'static + Fn(&Message, &Model) -> Model,
+    Init: 'static + Fn() -> (Model, Commands<Message>),
+    Update: 'static + Fn(&Message, &Model) -> (Model, Commands<Message>),
     View: 'static + Fn(&Model) -> Html<Message>,
 {
     pub fn new(app: &App<Model, Message, Init, Update, View>) -> Self {
@@ -28,7 +29,7 @@ where
 
     pub fn render(
         &self,
-        old: &Option<Html<Message>>,
+        old: Option<&Html<Message>>,
         new: &Html<Message>,
         root_id: &str,
     ) -> Result<(), JsValue>
@@ -36,7 +37,7 @@ where
         Message: 'static + Clone + fmt::Debug,
     {
         let root = self.document.get_element_by_id(root_id).unwrap();
-        self.render_node(&old.as_ref(), &Some(new), &root, 0)?;
+        self.render_node(&old, &Some(new), &root, 0)?;
 
         Ok(())
     }

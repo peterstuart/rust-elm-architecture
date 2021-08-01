@@ -1,8 +1,10 @@
 mod app;
+mod command;
 mod renderer;
 mod virtual_dom;
 
 use app::App;
+use command::Commands;
 use virtual_dom::{Attribute, Html};
 use wasm_bindgen::prelude::*;
 
@@ -51,16 +53,18 @@ enum Message {
     ChangeText(String),
 }
 
-fn init() -> Model {
-    Model::default()
+fn init() -> (Model, Commands<Message>) {
+    (Model::default(), vec![])
 }
 
-fn update(message: &Message, model: &Model) -> Model {
-    match message {
+fn update(message: &Message, model: &Model) -> (Model, Commands<Message>) {
+    let model = match message {
         Message::Increment => model.increment(),
         Message::Decrement => model.decrement(),
         Message::ChangeText(text) => model.change_text(text),
-    }
+    };
+
+    (model, vec![])
 }
 
 fn view(model: &Model) -> Html<Message> {
