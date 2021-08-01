@@ -99,7 +99,7 @@ where
 
     fn replace_child(element: &Element, index: u32, new: &Node) -> Result<(), JsValue> {
         let old = Self::get_child(element, index)?;
-        element.replace_child(&old, new)?;
+        element.replace_child(new, &old)?;
 
         Ok(())
     }

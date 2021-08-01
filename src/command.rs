@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-#[async_trait]
+#[async_trait(?Send)]
 pub trait Command<Message> {
     async fn run(&self) -> Message;
 
@@ -12,4 +12,5 @@ pub trait Command<Message> {
     }
 }
 
-pub type Commands<T> = Vec<Box<dyn Command<T>>>;
+pub type Boxed<T> = Box<dyn Command<T>>;
+pub type Commands<T> = Vec<Boxed<T>>;

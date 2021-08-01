@@ -1,4 +1,5 @@
 use crate::{command::Commands, renderer::Renderer, virtual_dom::Html};
+use log::info;
 use std::{cell::Ref, cell::RefCell, fmt, rc::Rc};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -50,6 +51,8 @@ where
     }
 
     pub fn handle_message(&self, message: &Message) {
+        info!("message: {:#?}", message);
+
         let (new_model, commands) = (self.update)(message, &self.state().as_ref().unwrap().model);
 
         if new_model == self.state().as_ref().unwrap().model {
@@ -60,6 +63,8 @@ where
     }
 
     fn update(&self, model: Model, commands: Commands<Message>) {
+        info!("model: {:#?}", model);
+
         let new_html = (self.view)(&model);
         self.render_app(&new_html).unwrap();
 
