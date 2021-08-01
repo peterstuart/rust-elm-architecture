@@ -1,6 +1,7 @@
 use crate::{command::Commands, renderer::Renderer, virtual_dom::Html};
 use std::{cell::Ref, cell::RefCell, fmt, rc::Rc};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 struct State<Model, Message> {
     model: Model,
@@ -66,7 +67,16 @@ where
         self.set_state(State::new(model, new_html));
     }
 
-    fn handle_commands(&self, commands: Commands<Message>) {}
+    fn handle_commands(&self, commands: Commands<Message>) {
+        for command in commands {
+            let app = self.clone();
+
+            spawn_local(async move {
+                let message = command.run().await;
+                app.handle_message(&message);
+            });
+        }
+    }
 
     fn state(&self) -> Ref<Option<State<Model, Message>>> {
         (self.state).borrow()

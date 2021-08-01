@@ -12,12 +12,14 @@ opt-level = "s"
 lto = true
 
 [dependencies]
+async-trait = "0.1.51"
 console_error_panic_hook = { version = "0.1.5", optional = true }
 console_log = { version = "0.2", optional = true, features = ["color"] }
 js-sys = "0.3.51"
 lazy_static = "1.4.0"
 log = "0.4"
 wasm-bindgen = "0.2.63"
+wasm-bindgen-futures = "0.4.24"
 web-sys = { version = "0.3.51", features = ["console", "Document", "Element", "HtmlCollection", "HtmlElement", "HtmlInputElement", "InputEvent", "Node", "NodeList", "Text", "Window"] }
 
 [dev-dependencies]

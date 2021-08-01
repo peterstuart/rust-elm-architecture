@@ -1,5 +1,8 @@
+use async_trait::async_trait;
+
+#[async_trait]
 pub trait Command<Message> {
-    fn run(&self);
+    async fn run(&self) -> Message;
 
     fn boxed(self) -> Box<Self>
     where
