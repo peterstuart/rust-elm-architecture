@@ -18,14 +18,23 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
         
-      - name: rustfmt
+      - name: rustfmt (lib)
         run: cargo fmt -- --check
         
-      - name: clippy
+      - name: clippy (lib)
         run: cargo clippy -- -D warnings && cargo clippy --tests -- -D warnings
         
-      - name: test
+      - name: test (lib)
         run: cargo test
 
-      - name: build
-        run: wasm-pack build
+      - name: rustfmt (example)
+        run: cd examples/basic && cargo fmt -- --check
+        
+      - name: clippy (example)
+        run: cd examples/basic && cargo clippy -- -D warnings && cargo clippy --tests -- -D warnings
+        
+      - name: test (example)
+        run: cd examples/basic && cargo test
+
+      - name: build (example)
+        run: cd examples/basic && wasm-pack build
