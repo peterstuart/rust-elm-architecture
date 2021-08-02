@@ -1,7 +1,4 @@
-use crate::{
-    command::{self, Command},
-    fetch::Fetch,
-};
+use rust_elm_architecture::{command, Command, Fetch};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::JsValue;
 

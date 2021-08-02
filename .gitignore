@@ -1,7 +1,7 @@
-/target
+**/target
 **/*.rs.bk
-Cargo.lock
+**/Cargo.lock
 bin/
 pkg/
-wasm-pack.log
-/node_modules/
+**/wasm-pack.log
+**/node_modules/
