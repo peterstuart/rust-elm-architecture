@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{fmt, rc::Rc};
 
 pub enum Event<Message> {
     Click(Message),
@@ -38,6 +38,13 @@ pub struct Element<Message> {
     pub children: Vec<Node<Message>>,
 }
 
+impl<Message> fmt::Debug for Element<Message> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.name.fmt(f)
+    }
+}
+
+#[derive(Debug)]
 pub enum Node<Message> {
     Element(Element<Message>),
     Text(String),
@@ -62,6 +69,14 @@ impl<Message> Node<Message> {
     ) -> Node<Message> {
         Node::Element(Element {
             name: "span".into(),
+            attributes,
+            children,
+        })
+    }
+
+    pub fn p(attributes: Vec<Attribute<Message>>, children: Vec<Node<Message>>) -> Node<Message> {
+        Node::Element(Element {
+            name: "p".into(),
             attributes,
             children,
         })

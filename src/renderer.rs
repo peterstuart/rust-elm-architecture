@@ -1,7 +1,9 @@
 use crate::{
     app::App,
+    command::Commands,
     virtual_dom::{self, Html},
 };
+use log::trace;
 use std::fmt;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use web_sys::{Document, Element, HtmlElement, InputEvent, Node, Text};
@@ -15,8 +17,8 @@ impl<Model, Message, Init, Update, View> Renderer<Model, Message, Init, Update, 
 where
     Model: 'static + Clone + fmt::Debug + Eq,
     Message: 'static + Clone + fmt::Debug,
-    Init: 'static + Fn() -> Model,
-    Update: 'static + Fn(&Message, &Model) -> Model,
+    Init: 'static + Fn() -> (Model, Commands<Message>),
+    Update: 'static + Fn(&Message, &Model) -> (Model, Commands<Message>),
     View: 'static + Fn(&Model) -> Html<Message>,
 {
     pub fn new(app: &App<Model, Message, Init, Update, View>) -> Self {
@@ -28,7 +30,7 @@ where
 
     pub fn render(
         &self,
-        old: &Option<Html<Message>>,
+        old: Option<&Html<Message>>,
         new: &Html<Message>,
         root_id: &str,
     ) -> Result<(), JsValue>
@@ -36,7 +38,7 @@ where
         Message: 'static + Clone + fmt::Debug,
     {
         let root = self.document.get_element_by_id(root_id).unwrap();
-        self.render_node(&old.as_ref(), &Some(new), &root, 0)?;
+        self.render_node(&old, &Some(new), &root, 0)?;
 
         Ok(())
     }
@@ -54,14 +56,24 @@ where
         match (old, new) {
             (None, None) => panic!("don't call render_element with no old or new html"),
             // remove old element
-            (Some(_), None) => Self::remove_child(parent, index)?,
+            (Some(old), None) => {
+                trace!("remove old element: {:?} {}", old, index);
+                Self::remove_child(parent, index)?
+            }
             // insert new element
-            (None, Some(new)) => Self::append_child(parent, &self.create_node(new)?)?,
+            (None, Some(new)) => {
+                trace!("insert new element: {:?}", new);
+                Self::append_child(parent, &self.create_node(new)?)?
+            }
             // leave text unchanged
             (Some(virtual_dom::Node::Text(old_text)), Some(virtual_dom::Node::Text(new_text)))
-                if old_text == new_text => {}
+                if old_text == new_text =>
+            {
+                trace!("leave text unchanged: {:?}", new_text);
+            }
             // update text
-            (Some(virtual_dom::Node::Text(_)), Some(virtual_dom::Node::Text(new_text))) => {
+            (Some(virtual_dom::Node::Text(old_text)), Some(virtual_dom::Node::Text(new_text))) => {
+                trace!("update text: {:?} -> {:?}", old_text, new_text);
                 Self::update_text(
                     &Self::get_child(parent, index)?.dyn_into::<Text>()?,
                     new_text,
@@ -71,10 +83,14 @@ where
             (Some(virtual_dom::Node::Element(old)), Some(virtual_dom::Node::Element(new)))
                 if old.name == new.name =>
             {
+                trace!("update element: {:?}", new.name);
                 self.update_element(old, new, &Self::get_child(parent, index)?.dyn_into()?)?;
             }
             // replace node
-            (Some(_), Some(node)) => Self::replace_child(parent, index, &self.create_node(node)?)?,
+            (Some(old), Some(new)) => {
+                trace!("replace node: {:?} -> {:?} {}", old, new, index);
+                Self::replace_child(parent, index, &self.create_node(new)?)?
+            }
         }
 
         Ok(())
@@ -98,7 +114,7 @@ where
 
     fn replace_child(element: &Element, index: u32, new: &Node) -> Result<(), JsValue> {
         let old = Self::get_child(element, index)?;
-        element.replace_child(&old, new)?;
+        element.replace_child(new, &old)?;
 
         Ok(())
     }
@@ -146,7 +162,7 @@ where
 
         let max_children = old.children.len().max(new.children.len());
 
-        for index in 0..max_children {
+        for index in (0..max_children).rev() {
             let old_child = old.children.get(index);
             let new_child = new.children.get(index);
 
