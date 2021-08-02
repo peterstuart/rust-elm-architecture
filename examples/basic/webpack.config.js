@@ -22,7 +22,7 @@ module.exports = {
     ]),
 
     new WasmPackPlugin({
-      crateDirectory: __dirname,
+      crateDirectory: __dirname
     }),
   ]
 };
