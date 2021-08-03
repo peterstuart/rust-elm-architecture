@@ -1,6 +1,5 @@
 use crate::{
     app::App,
-    command::Commands,
     virtual_dom::{self, Html},
 };
 use log::trace;
@@ -8,20 +7,17 @@ use std::fmt;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use web_sys::{Document, Element, HtmlElement, InputEvent, Node, Text};
 
-pub struct Renderer<Model, Message, Init, Update, View> {
-    app: App<Model, Message, Init, Update, View>,
+pub struct Renderer<Model, Message> {
+    app: App<Model, Message>,
     document: Document,
 }
 
-impl<Model, Message, Init, Update, View> Renderer<Model, Message, Init, Update, View>
+impl<Model, Message> Renderer<Model, Message>
 where
     Model: 'static + Clone + fmt::Debug + Eq,
     Message: 'static + Clone + fmt::Debug,
-    Init: 'static + Fn() -> (Model, Commands<Message>),
-    Update: 'static + Fn(&Message, &Model) -> (Model, Commands<Message>),
-    View: 'static + Fn(&Model) -> Html<Message>,
 {
-    pub fn new(app: &App<Model, Message, Init, Update, View>) -> Self {
+    pub fn new(app: &App<Model, Message>) -> Self {
         Self {
             app: app.clone(),
             document: web_sys::window().unwrap().document().unwrap(),

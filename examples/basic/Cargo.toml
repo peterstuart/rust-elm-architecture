@@ -15,8 +15,8 @@ lto = true
 wasm-opt = false
 
 [dependencies]
-console_error_panic_hook = "0.1.5"
-console_log = { version = "0.2", features = ["color"] }
+console_error_panic_hook = { version = "0.1.5", optional = true }
+console_log = { version = "0.2", features = ["color"], optional = true }
 log = "0.4"
 rust-elm-architecture = { path = "../../" }
 serde = { version = "1.0.127", features = ["derive"] }
@@ -24,3 +24,6 @@ wasm-bindgen = { version = "0.2.63", features = ["serde-serialize"] }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
+
+[features]
+default = ["console_log", "console_error_panic_hook"]

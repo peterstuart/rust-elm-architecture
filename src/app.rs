@@ -18,27 +18,29 @@ where
     }
 }
 
-pub struct App<Model, Message, Init, Update, View> {
-    init: Rc<Init>,
-    update: Rc<Update>,
-    view: Rc<View>,
+pub struct App<Model, Message> {
+    init: Rc<Box<dyn Fn() -> (Model, Commands<Message>)>>,
+    update: Rc<Box<dyn Fn(&Message, &Model) -> (Model, Commands<Message>)>>,
+    view: Rc<Box<dyn Fn(&Model) -> Html<Message>>>,
     root_id: String,
     state: Rc<RefCell<Option<State<Model, Message>>>>,
 }
 
-impl<Model, Message, Init, Update, View> App<Model, Message, Init, Update, View>
+impl<Model, Message> App<Model, Message>
 where
     Model: 'static + Clone + fmt::Debug + Eq,
     Message: 'static + Clone + fmt::Debug,
-    Init: 'static + Fn() -> (Model, Commands<Message>),
-    Update: 'static + Fn(&Message, &Model) -> (Model, Commands<Message>),
-    View: 'static + Fn(&Model) -> Html<Message>,
 {
-    pub fn new(init: Init, update: Update, view: View, root_id: &str) -> Self {
+    pub fn new<Init, Update, View>(init: Init, update: Update, view: View, root_id: &str) -> Self
+    where
+        Init: 'static + Fn() -> (Model, Commands<Message>),
+        Update: 'static + Fn(&Message, &Model) -> (Model, Commands<Message>),
+        View: 'static + Fn(&Model) -> Html<Message>,
+    {
         Self {
-            init: Rc::new(init),
-            update: Rc::new(update),
-            view: Rc::new(view),
+            init: Rc::new(Box::new(init)),
+            update: Rc::new(Box::new(update)),
+            view: Rc::new(Box::new(view)),
             root_id: root_id.into(),
             state: Rc::new(RefCell::new(None)),
         }
@@ -101,7 +103,7 @@ where
     }
 }
 
-impl<Model, Message, Init, Update, View> Clone for App<Model, Message, Init, Update, View> {
+impl<Model, Message> Clone for App<Model, Message> {
     fn clone(&self) -> Self {
         Self {
             init: self.init.clone(),
