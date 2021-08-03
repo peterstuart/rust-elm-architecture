@@ -4,3 +4,11 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/examples/basic"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "npm"
+    directory: "/examples/basic"
+    schedule:
+      interval: "daily"
