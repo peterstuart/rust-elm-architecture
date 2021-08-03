@@ -18,10 +18,15 @@ where
     }
 }
 
+type InitFn<Model, Message> = dyn Fn() -> (Model, Commands<Message>);
+type UpdateFn<Model, Message> = dyn Fn(&Message, &mut Model) -> Commands<Message>;
+type ViewFn<Model, Message> = dyn Fn(&Model) -> Html<Message>;
+
+#[derive(Clone)]
 pub struct App<Model, Message> {
-    init: Rc<Box<dyn Fn() -> (Model, Commands<Message>)>>,
-    update: Rc<Box<dyn Fn(&Message, &Model) -> (Model, Commands<Message>)>>,
-    view: Rc<Box<dyn Fn(&Model) -> Html<Message>>>,
+    init: Rc<InitFn<Model, Message>>,
+    update: Rc<UpdateFn<Model, Message>>,
+    view: Rc<ViewFn<Model, Message>>,
     root_id: String,
     state: Rc<RefCell<Option<State<Model, Message>>>>,
 }
@@ -34,13 +39,13 @@ where
     pub fn new<Init, Update, View>(init: Init, update: Update, view: View, root_id: &str) -> Self
     where
         Init: 'static + Fn() -> (Model, Commands<Message>),
-        Update: 'static + Fn(&Message, &Model) -> (Model, Commands<Message>),
+        Update: 'static + Fn(&Message, &mut Model) -> Commands<Message>,
         View: 'static + Fn(&Model) -> Html<Message>,
     {
         Self {
-            init: Rc::new(Box::new(init)),
-            update: Rc::new(Box::new(update)),
-            view: Rc::new(Box::new(view)),
+            init: Rc::new(init),
+            update: Rc::new(update),
+            view: Rc::new(view),
             root_id: root_id.into(),
             state: Rc::new(RefCell::new(None)),
         }
@@ -55,7 +60,8 @@ where
     pub fn handle_message(&self, message: &Message) {
         info!("message: {:#?}", message);
 
-        let (new_model, commands) = (self.update)(message, &self.state().as_ref().unwrap().model);
+        let mut new_model = self.state().as_ref().unwrap().model.clone();
+        let commands = (self.update)(message, &mut new_model);
 
         if new_model == self.state().as_ref().unwrap().model {
             return;
@@ -100,17 +106,5 @@ where
             html,
             &self.root_id,
         )
-    }
-}
-
-impl<Model, Message> Clone for App<Model, Message> {
-    fn clone(&self) -> Self {
-        Self {
-            init: self.init.clone(),
-            update: self.update.clone(),
-            view: self.view.clone(),
-            root_id: self.root_id.clone(),
-            state: self.state.clone(),
-        }
     }
 }

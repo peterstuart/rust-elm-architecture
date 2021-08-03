@@ -15,43 +15,6 @@ pub struct Model {
     pull_requests: DataLoading<Vec<PullRequest>>,
 }
 
-impl Model {
-    fn increment(&self) -> Self {
-        Self {
-            counter: self.counter + 1,
-            repo: self.repo.clone(),
-            pull_requests: self.pull_requests.clone(),
-        }
-    }
-
-    fn decrement(&self) -> Self {
-        Self {
-            counter: self.counter - 1,
-            repo: self.repo.clone(),
-            pull_requests: self.pull_requests.clone(),
-        }
-    }
-
-    fn change_text(&self, text: &str) -> Self {
-        Self {
-            counter: self.counter,
-            repo: text.into(),
-            pull_requests: self.pull_requests.clone(),
-        }
-    }
-
-    fn change_pull_requests_data_loading(
-        &self,
-        data_loading: DataLoading<Vec<PullRequest>>,
-    ) -> Self {
-        Self {
-            counter: self.counter,
-            repo: self.repo.clone(),
-            pull_requests: data_loading,
-        }
-    }
-}
-
 impl Default for Model {
     fn default() -> Self {
         Self {
@@ -85,27 +48,25 @@ fn init() -> (Model, Commands<Message>) {
     )
 }
 
-fn update(message: &Message, model: &Model) -> (Model, Commands<Message>) {
-    let model = match message {
-        Message::Increment => model.increment(),
-        Message::Decrement => model.decrement(),
-        Message::ChangeRepo(text) => model.change_text(text),
-        Message::FetchPullRequests => model.change_pull_requests_data_loading(DataLoading::Loading),
+fn update(message: &Message, model: &mut Model) -> Commands<Message> {
+    match message {
+        Message::Increment => model.counter += 1,
+        Message::Decrement => model.counter -= 1,
+        Message::ChangeRepo(repo) => model.repo = repo.clone(),
+        Message::FetchPullRequests => model.pull_requests = DataLoading::Loading,
         Message::ChangePullRequestsDataLoading(data_loading) => {
-            model.change_pull_requests_data_loading(data_loading.clone())
+            model.pull_requests = data_loading.clone()
         }
     };
 
-    let commands = match message {
+    match message {
         Message::FetchPullRequests => vec![github::get_pull_requests(&model.repo, |result| {
             Message::ChangePullRequestsDataLoading(
                 result.map_or_else(|_| DataLoading::Error, DataLoading::Loaded),
             )
         })],
         _ => vec![],
-    };
-
-    (model, commands)
+    }
 }
 
 fn view(model: &Model) -> Html<Message> {
