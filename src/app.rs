@@ -19,7 +19,7 @@ where
 }
 
 type InitFn<Model, Message> = dyn Fn() -> (Model, Commands<Message>);
-type UpdateFn<Model, Message> = dyn Fn(&Message, &mut Model) -> Commands<Message>;
+type UpdateFn<Model, Message> = dyn Fn(Message, &mut Model) -> Commands<Message>;
 type ViewFn<Model, Message> = dyn Fn(&Model) -> Html<Message>;
 
 #[derive(Clone)]
@@ -39,7 +39,7 @@ where
     pub fn new<Init, Update, View>(init: Init, update: Update, view: View, root_id: &str) -> Self
     where
         Init: 'static + Fn() -> (Model, Commands<Message>),
-        Update: 'static + Fn(&Message, &mut Model) -> Commands<Message>,
+        Update: 'static + Fn(Message, &mut Model) -> Commands<Message>,
         View: 'static + Fn(&Model) -> Html<Message>,
     {
         Self {
@@ -57,7 +57,7 @@ where
         self.update(model, commands);
     }
 
-    pub fn handle_message(&self, message: &Message) {
+    pub fn handle_message(&self, message: Message) {
         info!("message: {:#?}", message);
 
         let mut new_model = self.state().as_ref().unwrap().model.clone();
@@ -86,7 +86,7 @@ where
 
             spawn_local(async move {
                 let message = command.run().await;
-                app.handle_message(&message);
+                app.handle_message(message);
             });
         }
     }

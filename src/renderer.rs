@@ -201,7 +201,7 @@ where
                             let message = message.clone();
 
                             let callback = Closure::wrap(Box::new(move || {
-                                app.handle_message(&message);
+                                app.handle_message(message.clone());
                             })
                                 as Box<dyn FnMut()>);
 
@@ -221,7 +221,7 @@ where
                                     .unwrap()
                                     .value();
                                 let message = handler(&value);
-                                app.handle_message(&message);
+                                app.handle_message(message);
                             })
                                 as Box<dyn Fn(_)>);
 
