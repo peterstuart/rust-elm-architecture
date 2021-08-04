@@ -1,3 +1,4 @@
+use macros::element;
 use std::{fmt, rc::Rc};
 
 pub enum Event<Message> {
@@ -101,54 +102,137 @@ impl<Message> Node<Message> {
         Node::Text(text.into())
     }
 
-    pub fn div(attributes: Vec<Attribute<Message>>, children: Vec<Node<Message>>) -> Node<Message> {
-        Node::Element(Element {
-            name: "div".into(),
-            attributes,
-            children,
-        })
-    }
+    // From https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 
-    pub fn span(
-        attributes: Vec<Attribute<Message>>,
-        children: Vec<Node<Message>>,
-    ) -> Node<Message> {
-        Node::Element(Element {
-            name: "span".into(),
-            attributes,
-            children,
-        })
-    }
+    // Content Sectioning
+    element!("address");
+    element!("article");
+    element!("aside");
+    element!("footer");
+    element!("header");
+    element!("h1");
+    element!("h2");
+    element!("h3");
+    element!("h4");
+    element!("h5");
+    element!("h6");
+    element!("main");
+    element!("nav");
+    element!("section");
 
-    pub fn p(attributes: Vec<Attribute<Message>>, children: Vec<Node<Message>>) -> Node<Message> {
-        Node::Element(Element {
-            name: "p".into(),
-            attributes,
-            children,
-        })
-    }
+    // Text Content
+    element!("blockquote");
+    element!("dd");
+    element!("div");
+    element!("d1");
+    element!("dt");
+    element!("figcaption");
+    element!("figure");
+    element!("hr");
+    element!("li");
+    element!("ol");
+    element!("p");
+    element!("pre");
+    element!("ul");
 
-    pub fn button(
-        attributes: Vec<Attribute<Message>>,
-        children: Vec<Node<Message>>,
-    ) -> Node<Message> {
-        Node::Element(Element {
-            name: "button".into(),
-            attributes,
-            children,
-        })
-    }
+    // Inline Text Semantics
+    element!("a");
+    element!("abbr");
+    element!("b");
+    element!("bdi");
+    element!("bdo");
+    element!("br");
+    element!("cite");
+    element!("code");
+    element!("data");
+    element!("dfn");
+    element!("em");
+    element!("i");
+    element!("kbd");
+    element!("mark");
+    element!("q");
+    element!("rp");
+    element!("rt");
+    element!("ruby");
+    element!("s");
+    element!("samp");
+    element!("small");
+    element!("span");
+    element!("strong");
+    element!("sub");
+    element!("sup");
+    element!("time");
+    element!("u");
+    element!("var");
+    element!("wbr");
 
-    pub fn input(
-        attributes: Vec<Attribute<Message>>,
-        children: Vec<Node<Message>>,
-    ) -> Node<Message> {
-        Node::Element(Element {
-            name: "input".into(),
-            attributes,
-            children,
-        })
-    }
+    // Image and Multimedia
+    element!("area");
+    element!("audio");
+    element!("img");
+    // element!("map");
+    element!("track");
+    element!("video");
+
+    // Embedded Content
+    element!("embed");
+    element!("iframe");
+    element!("object");
+    element!("param");
+    element!("picture");
+    element!("portal");
+    element!("source");
+
+    // SVG and MathML
+    element!("svg");
+    element!("math");
+
+    // Scripting
+    element!("canvas");
+    element!("noscript");
+    element!("script");
+
+    // Demarcating Edits
+    element!("del");
+    element!("ins");
+
+    // Table Content
+    element!("caption");
+    element!("col");
+    element!("colgroup");
+    element!("table");
+    element!("tbody");
+    element!("td");
+    element!("tfoot");
+    element!("th");
+    element!("thead");
+    element!("tr");
+
+    // Forms
+    element!("button");
+    element!("datalist");
+    element!("fieldset");
+    element!("form");
+    element!("input");
+    element!("label");
+    element!("legend");
+    element!("meter");
+    element!("optgroup");
+    element!("option");
+    element!("output");
+    element!("progress");
+    element!("select");
+    element!("textarea");
+
+    // Interactive Elements
+    element!("details");
+    element!("dialog");
+    element!("menu");
+    element!("summary");
+
+    // Web Components
+    element!("slot");
+    element!("template");
 
     pub fn map<OtherMessage, F>(self, f: F) -> Node<OtherMessage>
     where
