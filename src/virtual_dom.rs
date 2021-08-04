@@ -5,6 +5,19 @@ pub enum Event<Message> {
     Input(Rc<dyn Fn(&str) -> Message>),
 }
 
+impl<Message> Event<Message> {
+    fn map<OtherMessage, F>(self, f: F) -> Event<OtherMessage>
+    where
+        Message: 'static,
+        F: 'static + Copy + Fn(Message) -> OtherMessage,
+    {
+        match self {
+            Event::Click(message) => Event::Click(f(message)),
+            Event::Input(handler) => Event::Input(Rc::new(move |input| f(handler(input)))),
+        }
+    }
+}
+
 pub enum Attribute<Message> {
     On(Event<Message>),
     Other(String, String),
@@ -30,12 +43,45 @@ impl<Message> Attribute<Message> {
     pub fn value(value: &str) -> Self {
         Self::Other("value".into(), value.into())
     }
+
+    fn map<OtherMessage, F>(self, f: F) -> Attribute<OtherMessage>
+    where
+        Message: 'static,
+        F: 'static + Copy + Fn(Message) -> OtherMessage,
+    {
+        match self {
+            Attribute::On(event) => Attribute::On(event.map(f)),
+            Attribute::Other(name, value) => Attribute::Other(name, value),
+        }
+    }
 }
 
 pub struct Element<Message> {
     pub name: String,
     pub attributes: Vec<Attribute<Message>>,
     pub children: Vec<Node<Message>>,
+}
+
+impl<Message> Element<Message> {
+    fn map<OtherMessage, F>(self, f: F) -> Element<OtherMessage>
+    where
+        Message: 'static,
+        F: 'static + Copy + Fn(Message) -> OtherMessage,
+    {
+        Element {
+            name: self.name,
+            attributes: self
+                .attributes
+                .into_iter()
+                .map(|attribute| attribute.map(f))
+                .collect(),
+            children: self
+                .children
+                .into_iter()
+                .map(|child| child.map(f))
+                .collect(),
+        }
+    }
 }
 
 impl<Message> fmt::Debug for Element<Message> {
@@ -102,6 +148,17 @@ impl<Message> Node<Message> {
             attributes,
             children,
         })
+    }
+
+    pub fn map<OtherMessage, F>(self, f: F) -> Node<OtherMessage>
+    where
+        Message: 'static,
+        F: 'static + Copy + Fn(Message) -> OtherMessage,
+    {
+        match self {
+            Node::Element(element) => Node::Element(element.map(f)),
+            Node::Text(text) => Node::Text(text),
+        }
     }
 }
 
