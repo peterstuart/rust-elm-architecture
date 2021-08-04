@@ -27,6 +27,12 @@ jobs:
       - name: test (lib)
         run: cargo test
 
+      - name: rustfmt (macros)
+        run: cd macros && cargo fmt -- --check
+        
+      - name: clippy (lib)
+        run: cd macros && cargo clippy -- -D warnings && cargo clippy --tests -- -D warnings
+
       - name: rustfmt (example)
         run: cd examples/basic && cargo fmt -- --check
         
