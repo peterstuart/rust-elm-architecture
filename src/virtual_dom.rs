@@ -1,4 +1,4 @@
-use macros::element;
+use macros::{attribute, element};
 use std::{fmt, rc::Rc};
 
 pub enum Event<Message> {
@@ -33,18 +33,6 @@ impl<Message> Attribute<Message> {
         Self::On(Event::Input(Rc::new(handler)))
     }
 
-    pub fn class(name: &str) -> Self {
-        Self::Other("class".into(), name.into())
-    }
-
-    pub fn type_(type_: &str) -> Self {
-        Self::Other("type".into(), type_.into())
-    }
-
-    pub fn value(value: &str) -> Self {
-        Self::Other("value".into(), value.into())
-    }
-
     fn map<OtherMessage, F>(self, f: F) -> Attribute<OtherMessage>
     where
         Message: 'static,
@@ -55,6 +43,136 @@ impl<Message> Attribute<Message> {
             Attribute::Other(name, value) => Attribute::Other(name, value),
         }
     }
+
+    // From https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes
+
+    attribute!("accept");
+    attribute!("accept-charset");
+    attribute!("accesskey");
+    attribute!("action");
+    attribute!("align");
+    attribute!("allow");
+    attribute!("alt");
+    attribute!("async", "async_");
+    attribute!("autocapitalize");
+    attribute!("autocomplete");
+    attribute!("autofocus");
+    attribute!("autoplay");
+    attribute!("buffered");
+    attribute!("capture");
+    attribute!("challenge");
+    attribute!("charset");
+    attribute!("checked");
+    attribute!("cite");
+    attribute!("class");
+    attribute!("code");
+    attribute!("codebase");
+    attribute!("color");
+    attribute!("cols");
+    attribute!("colspan");
+    attribute!("content");
+    attribute!("contenteditable");
+    attribute!("contextmenu");
+    attribute!("controls");
+    attribute!("coords");
+    attribute!("crossorigin");
+    attribute!("csp");
+    attribute!("data");
+    attribute!("datetime");
+    attribute!("decoding");
+    attribute!("default");
+    attribute!("defer");
+    attribute!("dir");
+    attribute!("dirname");
+    attribute!("disabled");
+    attribute!("download");
+    attribute!("draggable");
+    attribute!("enctype");
+    attribute!("enterkeyhint");
+    attribute!("for", "for_");
+    attribute!("form");
+    attribute!("formaction");
+    attribute!("formenctype");
+    attribute!("formmethod");
+    attribute!("formnovalidate");
+    attribute!("formtarget");
+    attribute!("headers");
+    attribute!("height");
+    attribute!("hidden");
+    attribute!("high");
+    attribute!("href");
+    attribute!("hreflang");
+    attribute!("icon");
+    attribute!("id");
+    attribute!("importance");
+    attribute!("integrity");
+    attribute!("intrinsicsize");
+    attribute!("inputmode");
+    attribute!("ismap");
+    attribute!("itemprop");
+    attribute!("keytype");
+    attribute!("kind");
+    attribute!("label");
+    attribute!("lang");
+    attribute!("language");
+    attribute!("loading");
+    attribute!("list");
+    attribute!("loop", "loop_");
+    attribute!("low");
+    attribute!("manifest");
+    attribute!("map", "map_");
+    attribute!("max");
+    attribute!("maxlength");
+    attribute!("minlength");
+    attribute!("media");
+    attribute!("method");
+    attribute!("min");
+    attribute!("multiple");
+    attribute!("muted");
+    attribute!("name");
+    attribute!("novalidate");
+    attribute!("open");
+    attribute!("optimum");
+    attribute!("pattern");
+    attribute!("ping");
+    attribute!("placeholder");
+    attribute!("poster");
+    attribute!("preload");
+    attribute!("radiogroup");
+    attribute!("readonly");
+    attribute!("referrerpolicy");
+    attribute!("rel");
+    attribute!("required");
+    attribute!("reversed");
+    attribute!("rows");
+    attribute!("rowspan");
+    attribute!("sandbox");
+    attribute!("scope");
+    attribute!("scoped");
+    attribute!("selected");
+    attribute!("shape");
+    attribute!("size");
+    attribute!("sizes");
+    attribute!("slot");
+    attribute!("span");
+    attribute!("spellcheck");
+    attribute!("src");
+    attribute!("srcdoc");
+    attribute!("srclang");
+    attribute!("srcset");
+    attribute!("start");
+    attribute!("step");
+    attribute!("style");
+    attribute!("summary");
+    attribute!("tabindex");
+    attribute!("target");
+    attribute!("title");
+    attribute!("translate");
+    attribute!("type", "type_");
+    attribute!("usemap");
+    attribute!("value");
+    attribute!("width");
+    attribute!("wrap");
 }
 
 pub struct Element<Message> {
@@ -100,6 +218,17 @@ pub enum Node<Message> {
 impl<Message> Node<Message> {
     pub fn text(text: &str) -> Node<Message> {
         Node::Text(text.into())
+    }
+
+    pub fn map<OtherMessage, F>(self, f: F) -> Node<OtherMessage>
+    where
+        Message: 'static,
+        F: 'static + Copy + Fn(Message) -> OtherMessage,
+    {
+        match self {
+            Node::Element(element) => Node::Element(element.map(f)),
+            Node::Text(text) => Node::Text(text),
+        }
     }
 
     // From https://developer.mozilla.org/en-US/docs/Web/HTML/Element
@@ -233,17 +362,6 @@ impl<Message> Node<Message> {
     // Web Components
     element!("slot");
     element!("template");
-
-    pub fn map<OtherMessage, F>(self, f: F) -> Node<OtherMessage>
-    where
-        Message: 'static,
-        F: 'static + Copy + Fn(Message) -> OtherMessage,
-    {
-        match self {
-            Node::Element(element) => Node::Element(element.map(f)),
-            Node::Text(text) => Node::Text(text),
-        }
-    }
 }
 
 pub type Html<Message> = Node<Message>;

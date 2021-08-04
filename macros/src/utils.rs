@@ -2,9 +2,9 @@ extern crate proc_macro;
 use proc_macro2::TokenStream;
 use syn::{Error, Expr, Lit, LitStr};
 
-pub fn str_literal(input: Expr) -> Result<LitStr, TokenStream> {
+pub fn str_literal(input: &Expr) -> Result<LitStr, TokenStream> {
     let lit = match input {
-        Expr::Lit(lit) => Ok(lit.lit),
+        Expr::Lit(lit) => Ok(lit.lit.clone()),
         _ => Err(syn::Error::new_spanned(input, "must be a str literal").to_compile_error()),
     }?;
 
