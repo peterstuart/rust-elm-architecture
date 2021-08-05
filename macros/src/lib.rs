@@ -40,6 +40,33 @@ pub fn element(item: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn attribute(items: TokenStream) -> TokenStream {
+    attribute_macro(items, |function_name, attribute_name| {
+        quote! {
+            pub fn #function_name(value: &str) -> Self {
+                Self::Text(#attribute_name.into(), value.into())
+            }
+        }
+    })
+}
+
+#[proc_macro]
+pub fn bool_attribute(items: TokenStream) -> TokenStream {
+    attribute_macro(items, |function_name, attribute_name| {
+        quote! {
+            pub fn #function_name(value: bool) -> Self {
+                Self::Bool(#attribute_name.into(), value)
+            }
+        }
+    })
+}
+
+fn attribute_macro<FunctionGenerator>(
+    items: TokenStream,
+    function_generator: FunctionGenerator,
+) -> TokenStream
+where
+    FunctionGenerator: FnOnce(&Ident, &String) -> proc_macro2::TokenStream,
+{
     from_result(move || {
         let parser = Punctuated::<Expr, Token![,]>::parse_terminated;
         let exprs = parser
@@ -63,12 +90,6 @@ pub fn attribute(items: TokenStream) -> TokenStream {
 
         let attribute_name = value.value();
 
-        let result = quote! {
-          pub fn #function_name(value: &str) -> Self {
-            Self::Other(#attribute_name.into(), value.into())
-          }
-        };
-
-        Ok(result)
+        Ok(function_generator(&function_name, &attribute_name))
     })
 }

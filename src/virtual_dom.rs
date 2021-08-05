@@ -1,4 +1,4 @@
-use macros::{attribute, element};
+use macros::{attribute, bool_attribute, element};
 use std::{fmt, rc::Rc};
 
 pub enum Event<Message> {
@@ -21,7 +21,8 @@ impl<Message> Event<Message> {
 
 pub enum Attribute<Message> {
     On(Event<Message>),
-    Other(String, String),
+    Bool(String, bool),
+    Text(String, String),
 }
 
 impl<Message> Attribute<Message> {
@@ -40,7 +41,8 @@ impl<Message> Attribute<Message> {
     {
         match self {
             Attribute::On(event) => Attribute::On(event.map(f)),
-            Attribute::Other(name, value) => Attribute::Other(name, value),
+            Attribute::Bool(name, value) => Attribute::Bool(name, value),
+            Attribute::Text(name, value) => Attribute::Text(name, value),
         }
     }
 
@@ -84,7 +86,7 @@ impl<Message> Attribute<Message> {
     attribute!("defer");
     attribute!("dir");
     attribute!("dirname");
-    attribute!("disabled");
+    bool_attribute!("disabled");
     attribute!("download");
     attribute!("draggable");
     attribute!("enctype");
@@ -94,7 +96,7 @@ impl<Message> Attribute<Message> {
     attribute!("formaction");
     attribute!("formenctype");
     attribute!("formmethod");
-    attribute!("formnovalidate");
+    bool_attribute!("formnovalidate");
     attribute!("formtarget");
     attribute!("headers");
     attribute!("height");
@@ -139,10 +141,10 @@ impl<Message> Attribute<Message> {
     attribute!("poster");
     attribute!("preload");
     attribute!("radiogroup");
-    attribute!("readonly");
+    bool_attribute!("readonly");
     attribute!("referrerpolicy");
     attribute!("rel");
-    attribute!("required");
+    bool_attribute!("required");
     attribute!("reversed");
     attribute!("rows");
     attribute!("rowspan");
