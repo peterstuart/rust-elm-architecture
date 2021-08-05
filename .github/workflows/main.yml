@@ -30,7 +30,7 @@ jobs:
       - name: rustfmt (macros)
         run: cd macros && cargo fmt -- --check
         
-      - name: clippy (lib)
+      - name: clippy (macros)
         run: cd macros && cargo clippy -- -D warnings && cargo clippy --tests -- -D warnings
 
       - name: rustfmt (example)
