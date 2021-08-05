@@ -18,6 +18,7 @@ wasm-opt = false
 async-trait = "0.1.51"
 js-sys = "0.3.51"
 log = "0.4"
+macros = { path = "macros" }
 serde = { version = "1.0.127", features = ["derive"] }
 serde_json = "1.0.66"
 wasm-bindgen = { version = "0.2.63", features = ["serde-serialize"] }

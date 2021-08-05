@@ -179,7 +179,8 @@ where
                     virtual_dom::Event::Click(_) => dom_element.set_onclick(None),
                     virtual_dom::Event::Input(_) => dom_element.set_oninput(None),
                 },
-                virtual_dom::Attribute::Other(name, _) => dom_element.set_attribute(name, "")?,
+                virtual_dom::Attribute::Bool(name, _) => dom_element.set_attribute(name, "")?,
+                virtual_dom::Attribute::Text(name, _) => dom_element.set_attribute(name, "")?,
             }
         }
 
@@ -232,7 +233,13 @@ where
                         }
                     }
                 }
-                virtual_dom::Attribute::Other(name, value) => {
+                virtual_dom::Attribute::Bool(name, value) => {
+                    // https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes#boolean_attributes
+                    if *value {
+                        dom_element.set_attribute(name, "")?
+                    }
+                }
+                virtual_dom::Attribute::Text(name, value) => {
                     dom_element.set_attribute(name, value)?
                 }
             }

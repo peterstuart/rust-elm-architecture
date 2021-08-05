@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: "daily"
   - package-ecosystem: "cargo"
+    directory: "/macros"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
     directory: "/examples/basic"
     schedule:
       interval: "daily"
