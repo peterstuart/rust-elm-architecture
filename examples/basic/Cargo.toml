@@ -16,7 +16,7 @@ wasm-opt = false
 
 [dependencies]
 console_error_panic_hook = { version = "0.1.5", optional = true }
-console_log = { version = "0.2", features = ["color"], optional = true }
+console_log = { version = "1.0", features = ["color"], optional = true }
 log = "0.4"
 rust-elm-architecture = { path = "../../" }
 serde = { version = "1.0.127", features = ["derive"] }
